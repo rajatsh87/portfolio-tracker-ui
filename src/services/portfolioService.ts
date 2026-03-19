@@ -14,6 +14,9 @@ export interface Holding {
   principalAmount?: number;
   interestRate?: number;
   maturityDate?: string;
+  daysRemaining?: number;
+  maturityAmount?: number;
+  FDNumber?: string
   }
 
 export interface TransactionAction {
@@ -37,6 +40,9 @@ export interface TransactionPayload {
   principalAmount?: number;
   interestRate?: number;
   maturityDate?: string;
+  daysRemaining?: number;
+  maturityAmount?: number;
+  FDNumber?: string
 }
 
 export const portfolioService = {
@@ -45,11 +51,12 @@ export const portfolioService = {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve([
-            { id: 1, ticker: 'BAJFINANCE.NS', name: 'Bajaj Finance', avgBuyPrice: 6500.00, currentPrice: 7100.50, quantity: 15, currency: 'INR', segment: 'equity', daysChangePct: 1.25 },
+          { id: 1, ticker: 'BAJFINANCE.NS', name: 'Bajaj Finance', avgBuyPrice: 6500.00, currentPrice: 7100.50, quantity: 15, currency: 'INR', segment: 'equity', daysChangePct: 1.25 },
           { id: 2, ticker: 'GRMN', name: 'Garmin Ltd.', avgBuyPrice: 130.25, currentPrice: 142.10, quantity: 10, currency: 'USD', segment: 'foreign', daysChangePct: -0.85 },
           { id: 3, ticker: 'INF846K01DP8', name: 'Axis Bluechip', avgBuyPrice: 45.20, currentPrice: 52.80, quantity: 1000, currency: 'INR', segment: 'mutual-funds', daysChangePct: 0.45 },
           // Mock FD data
-          { id: 4, bankName: 'SBI FD', principalAmount: 100000, interestRate: 7.1, maturityDate: '2028-01-01', currency: 'INR', segment: 'fds' }
+          { id: 4, bankName: 'SBI FD', principalAmount: 100000, interestRate: 12.0, maturityDate: '2028-01-01', daysRemaining: 365, maturityAmount: 120000, currency: 'INR', segment: 'fds' , FDNumber: '1234567890'},
+          
         ]);
       }, 1000);
     });

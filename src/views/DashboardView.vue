@@ -69,14 +69,44 @@ const filteredHoldings = computed(() => {
 </script>
 
 <style scoped>
-/* Keep your existing dashboard layout styles here */
 .dashboard { padding: 0 20px; font-family: sans-serif; }
 .dashboard-content { display: flex; flex-direction: column; gap: 30px; margin-top: 20px; }
-.table-container { overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; }
-.table-header-container { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-bottom: 10px; border-bottom: 2px solid #edf2f7; }
-.table-header-container h2 { margin: 0; color: #2d3748; }
-.add-transaction-btn { background-color: #2b6cb0; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-.add-transaction-btn:hover { background-color: #2c5282; }
-.modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { border-radius: 8px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); max-width: 900px; width: 95%; }
+
+/* FIX: The container now uses the dark mode background and border */
+.table-container { 
+  overflow-x: auto; 
+  background: var(--card-bg); 
+  border-radius: 8px; 
+  border: 1px solid var(--border-color); 
+}
+
+/* FIX: Header border and title color */
+.table-header-container { 
+  display: flex; justify-content: space-between; align-items: center; 
+  margin-top: 10px; padding-bottom: 10px; 
+  border-bottom: 2px solid var(--border-color); 
+}
+.table-header-container h2 { margin: 0; color: var(--text-main); }
+
+/* Updated Button variables */
+.add-transaction-btn { 
+  background-color: var(--blue-primary); 
+  color: white; 
+  border: none; padding: 10px 20px; border-radius: 6px; 
+  font-weight: 600; cursor: pointer; transition: background-color 0.2s; 
+}
+.add-transaction-btn:hover { background-color: var(--blue-hover); }
+
+.modal-backdrop { 
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+  background-color: rgba(0, 0, 0, 0.5); 
+  display: flex; justify-content: center; align-items: center; z-index: 1000; 
+}
+
+/* Ensure the modal content wrapper doesn't force a white background */
+.modal-content { 
+  border-radius: 8px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); 
+  max-width: 900px; width: 95%; 
+  background: var(--card-bg);
+}
 </style>

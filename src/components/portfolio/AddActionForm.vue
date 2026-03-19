@@ -96,11 +96,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useRoute } from 'vue-router'; // <-- 1. Import useRoute
 import { usePortfolioStore } from '../../stores/portfolio';
 
 const emit = defineEmits(['close']);
 const portfolioStore = usePortfolioStore();
 const { availableActions } = storeToRefs(portfolioStore);
+const route = useRoute(); // <-- 2. Initialize route
 
 const segments = [
   { id: 'equity', name: 'Stocks/ETF' },
@@ -109,10 +111,24 @@ const segments = [
   { id: 'foreign', name: 'Foreign Equity' }
 ];
 
+// 3. Helper to determine the default segment based on the URL
+const getDefaultSegment = () => {
+  const segmentMap: Record<string, string> = {
+    '/mutual-funds': 'mutual-funds',
+    '/fds': 'fds',
+    '/foreign': 'foreign',
+    '/equity': 'equity'
+  };
+  // If we are on Overview ('/') or any unmapped route, default to 'equity'
+  return segmentMap[route.path] || 'equity'; 
+};
+
+// 4. Initialize formData using our new helper
 const formData = ref({
-  segment: 'equity',
+  segment: getDefaultSegment(), 
   actionId: 'BUY',
-  currency: 'INR',
+  // Smart currency: default to USD if on the foreign tab, else INR
+  currency: route.path === '/foreign' ? 'USD' : 'INR', 
   date: new Date().toISOString().split('T')[0], 
   // Equity Fields
   ticker: '',
@@ -139,11 +155,9 @@ const handleSubmit = async () => {
     actionId: formData.value.actionId,
     date: formData.value.date,
     currency: formData.value.currency,
-    // Send equity data if not FD
     ticker: formData.value.segment !== 'fds' ? formData.value.ticker : undefined,
     price: formData.value.segment !== 'fds' ? (formData.value.price || 0) : undefined,
     quantity: formData.value.segment !== 'fds' ? (formData.value.quantity || 0) : undefined,
-    // Send FD data if it IS FD
     bankName: formData.value.segment === 'fds' ? formData.value.bankName : undefined,
     principalAmount: formData.value.segment === 'fds' ? (formData.value.principalAmount || 0) : undefined,
     interestRate: formData.value.segment === 'fds' ? (formData.value.interestRate || 0) : undefined,
@@ -162,23 +176,106 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-/* Keep all your existing CSS exactly as it was! It will automatically style the new FD fields perfectly. */
-.transaction-panel { background: #fff; border-radius: 8px; width: 100%; overflow: hidden; }
-.segment-tabs { display: flex; background: #f8fafc; padding: 0; border-bottom: 2px solid #2b6cb0; }
-.tab-btn { padding: 12px 24px; background: transparent; border: none; cursor: pointer; font-weight: 600; color: #4a5568; transition: all 0.2s ease; }
-.tab-btn.active { background: #2b6cb0; color: white; }
-.tab-btn:hover:not(.active) { background: #e2e8f0; }
+/* Main Container */
+.transaction-panel { 
+  background: var(--card-bg); 
+  border-radius: 8px; 
+  width: 100%; 
+  overflow: hidden; 
+}
+
+/* Tab Styling */
+.segment-tabs { 
+  display: flex; 
+  background: var(--nav-hover); /* Slightly offsets from the card background */
+  padding: 0; 
+  border-bottom: 2px solid var(--blue-primary); 
+}
+.tab-btn { 
+  padding: 12px 24px; 
+  background: transparent; 
+  border: none; 
+  cursor: pointer; 
+  font-weight: 600; 
+  color: var(--text-muted); 
+  transition: all 0.2s ease; 
+}
+.tab-btn.active { 
+  background: var(--blue-primary); 
+  color: white; 
+}
+.tab-btn:hover:not(.active) { 
+  background: var(--bg-color); 
+  color: var(--text-main); 
+}
+
+/* Form Layout */
 .modal-form { display: flex; flex-direction: column; padding: 20px; gap: 20px; }
 .inputs-row { display: flex; align-items: flex-end; gap: 15px; width: 100%; flex-wrap: wrap; }
 .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 100px; }
 .input-group.flex-grow { flex: 2; min-width: 200px; }
-.input-group label { font-size: 13px; font-weight: 700; color: #2d3748; }
-.input-group input, .input-group select { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 14px; background: #fff; }
-.input-group input:focus, .input-group select:focus { outline: none; border-color: #2b6cb0; box-shadow: 0 0 0 1px #2b6cb0; }
-.actions-row { display: flex; justify-content: flex-end; gap: 15px; margin-top: 10px; padding-top: 20px; border-top: 1px solid #edf2f7; }
-.cancel-btn { padding: 8px 16px; background: transparent; color: #4a5568; border: 1px solid transparent; cursor: pointer; font-weight: 600; font-size: 14px; }
-.cancel-btn:hover { text-decoration: underline; color: #2d3748; }
-.submit-btn { padding: 10px 24px; background-color: #2b6cb0; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background-color 0.2s; }
-.submit-btn:hover { background-color: #2c5282; }
-.submit-btn:disabled { background-color: #a0aec0; cursor: not-allowed; }
+
+/* Input Styling */
+.input-group label { 
+  font-size: 13px; 
+  font-weight: 700; 
+  color: var(--text-main); 
+}
+.input-group input, 
+.input-group select { 
+  box-sizing: border-box; 
+  width: 100%; 
+  padding: 10px; 
+  border: 1px solid var(--border-color); 
+  border-radius: 4px; 
+  font-size: 14px; 
+  background: var(--bg-color); /* Darkens the input box in dark mode */
+  color: var(--text-main);     /* Ensures you can read what you type! */
+}
+.input-group input:focus, 
+.input-group select:focus { 
+  outline: none; 
+  border-color: var(--blue-primary); 
+  box-shadow: 0 0 0 1px var(--blue-primary); 
+}
+
+/* Buttons */
+.actions-row { 
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 15px; 
+  margin-top: 10px; 
+  padding-top: 20px; 
+  border-top: 1px solid var(--border-color); 
+}
+.cancel-btn { 
+  padding: 8px 16px; 
+  background: transparent; 
+  color: var(--text-muted); 
+  border: 1px solid transparent; 
+  cursor: pointer; 
+  font-weight: 600; 
+  font-size: 14px; 
+}
+.cancel-btn:hover { 
+  text-decoration: underline; 
+  color: var(--text-main); 
+}
+.submit-btn { 
+  padding: 10px 24px; 
+  background-color: var(--blue-primary); 
+  color: white; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer; 
+  font-weight: 600; 
+  font-size: 14px; 
+  transition: background-color 0.2s; 
+}
+.submit-btn:hover { background-color: var(--blue-hover); }
+.submit-btn:disabled { 
+  background-color: var(--text-muted); 
+  cursor: not-allowed; 
+  opacity: 0.7;
+}
 </style>

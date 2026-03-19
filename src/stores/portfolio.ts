@@ -75,11 +75,23 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   };
 
   const latestValue = computed(() => {
-    return holdings.value.reduce((total, asset) => total + (asset.currentPrice * asset.quantity), 0);
+    return holdings.value.reduce((total, asset) => {
+      // If it's an FD, use principal. Otherwise, use price * quantity.
+      const val = asset.segment === 'fds' 
+        ? (asset.principalAmount || 0) 
+        : ((asset.currentPrice || 0) * (asset.quantity || 0));
+      return total + val;
+    }, 0);
   });
 
   const investmentCost = computed(() => {
-    return holdings.value.reduce((total, asset) => total + (asset.avgBuyPrice * asset.quantity), 0);
+    return holdings.value.reduce((total, asset) => {
+      // If it's an FD, use principal. Otherwise, use buyPrice * quantity.
+      const val = asset.segment === 'fds' 
+        ? (asset.principalAmount || 0) 
+        : ((asset.avgBuyPrice || 0) * (asset.quantity || 0));
+      return total + val;
+    }, 0);
   });
 
   const overallUnrealizedGain = computed(() => {

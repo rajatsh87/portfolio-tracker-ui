@@ -76,59 +76,35 @@
   </script>
   
   <style scoped>
-  .summary-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-  }
-  .card-header {
-    font-weight: 800;
-    font-size: 16px;
-    margin-bottom: 20px;
-    letter-spacing: 0.5px;
-  }
-  .card-body {
-    display: flex;
-    border-top: 1px solid #edf2f7;
-    padding-top: 20px;
-  }
-  .col {
-    flex: 1;
-    padding: 0 20px;
-  }
-  .col-assets { padding-left: 0; }
-  .col-realized { padding-right: 0; border-left: 1px solid #edf2f7; }
-  .col-unrealized { border-left: 1px solid #edf2f7; }
-  .col-title {
-    font-size: 18px;
-    font-weight: 800;
-    margin: 0 0 15px 0;
-  }
-  .metric {
-    display: flex;
-    flex-direction: column;
-  }
-  .mt-2 { margin-top: 10px; }
-  .mt-4 { margin-top: 25px; }
-  .label {
-    font-size: 14px;
-    color: #4a5568;
-    margin-bottom: 4px;
-  }
-  .value {
-    font-size: 20px;
-    font-weight: 800;
-  }
-  .value.large { font-size: 28px; }
-  .gain-value.positive { color: #38a169; }
-  .gain-value.negative { color: #e53e3e; }
-  .arrow { font-size: 14px; }
-  .percent { font-size: 14px; font-weight: 600; }
-  .realized-split {
-    display: flex;
-    gap: 40px;
-  }
-  </style>
+.summary-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-main);
+  transition: all 0.3s ease;
+}
+.card-header { font-weight: 800; font-size: 16px; margin-bottom: 20px; letter-spacing: 0.5px; }
+.card-body {
+  display: flex; /* THIS is what keeps it horizontal! */
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+}
+.col { flex: 1; padding: 0 20px; }
+.col-assets { padding-left: 0; }
+.col-realized { padding-right: 0; border-left: 1px solid var(--border-color); }
+.col-unrealized { border-left: 1px solid var(--border-color); }
+.col-title { font-size: 18px; font-weight: 800; margin: 0 0 15px 0; }
+.metric { display: flex; flex-direction: column; }
+.mt-2 { margin-top: 10px; }
+.mt-4 { margin-top: 25px; }
+.label { font-size: 14px; color: var(--text-muted); margin-bottom: 4px; }
+.value { font-size: 20px; font-weight: 800; }
+.value.large { font-size: 28px; }
+.gain-value.positive { color: var(--green-gain); }
+.gain-value.negative { color: var(--red-loss); }
+.arrow { font-size: 14px; }
+.percent { font-size: 14px; font-weight: 600; }
+.realized-split { display: flex; gap: 40px; }
+</style>
