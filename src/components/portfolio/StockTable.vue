@@ -3,6 +3,8 @@
     :data="tableData" 
     :columns="stockColumns" 
     defaultSortKey="name" 
+    :showFooter="tableData.length > 0" 
+    :footerData="grandTotal"
   />
 </template>
 
@@ -13,7 +15,6 @@ import CommonTable, { type TableColumn } from '../common/CommonTable.vue';
 
 const props = defineProps<{ holdings: Holding[]; assetColumnName: string; }>();
 
-// Define exactly how this specific table should look and format its data
 const stockColumns = computed<TableColumn[]>(() => [
   { key: 'name', label: props.assetColumnName, align: 'left', bold: true, subKey: 'ticker' },
   { key: 'currentPrice', label: 'Live Price', type: 'currency' },
@@ -27,7 +28,6 @@ const stockColumns = computed<TableColumn[]>(() => [
 
 const totalFilteredValue = computed(() => props.holdings.reduce((sum, asset) => sum + ((asset.currentPrice || 0) * (asset.quantity || 0)), 0));
 
-// Calculate the math (same as before)
 const tableData = computed(() => {
   return props.holdings.map(asset => {
     const investment = (asset.avgBuyPrice || 0) * (asset.quantity || 0);
@@ -38,5 +38,29 @@ const tableData = computed(() => {
 
     return { ...asset, investment, latestValue, pnl, pnlPercent, allocation };
   });
+});
+
+// NEW: Calculate the Grand Total for this specific segment
+const grandTotal = computed(() => {
+  const total = { 
+    name: 'Grand Total', 
+    currentPrice: null,    // Doesn't make sense to sum prices
+    daysChangePct: null,   // Doesn't make sense to sum daily percentages directly
+    investment: 0, 
+    latestValue: 0, 
+    pnl: 0, 
+    pnlPercent: 0, 
+    allocation: 100,
+    currency: tableData.value.length > 0 ? tableData.value[0].currency : 'INR' // Smart currency detection!
+  };
+  
+  tableData.value.forEach(asset => {
+    total.investment += asset.investment;
+    total.latestValue += asset.latestValue;
+    total.pnl += asset.pnl;
+  });
+  
+  total.pnlPercent = total.investment > 0 ? (total.pnl / total.investment) * 100 : 0;
+  return total;
 });
 </script>
