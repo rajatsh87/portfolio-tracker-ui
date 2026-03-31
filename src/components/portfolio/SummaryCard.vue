@@ -1,79 +1,91 @@
+<script setup lang="ts">
+import { storeToRefs } from 'pinia';
+import { usePortfolioStore } from '../../stores/portfolio';
+
+const portfolioStore = usePortfolioStore();
+const { 
+  latestValue, 
+  investmentCost, 
+  unrealizedGain, 
+  unrealizedGainPercent, 
+  todayGain, 
+  todayGainPercent,
+  realizedGain 
+} = storeToRefs(portfolioStore);
+
+// --- SAFE FORMATTERS (Prevents the .toFixed undefined crash) ---
+const formatCurrency = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) return '₹0.00';
+  return '₹' + Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const formatPercent = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) return '0.00%';
+  return Number(value).toFixed(2) + '%';
+};
+</script>
+
 <template>
-    <div class="summary-card">
-      <div class="card-header">MY ASSETS</div>
-      
-      <div class="card-body">
-        <div class="col col-assets">
+  <div class="summary-card">
+    <div class="card-header">MY ASSETS</div>
+    
+    <div class="card-body">
+      <div class="col col-assets">
+        <div class="metric">
+          <span class="label">Latest Value</span>
+          <span class="value large">{{ formatCurrency(latestValue) }}</span>
+        </div>
+        <div class="metric mt-4">
+          <span class="label">Investment Cost</span>
+          <span class="value">{{ formatCurrency(investmentCost) }}</span>
+        </div>
+      </div>
+
+      <div class="col col-unrealized">
+        <h3 class="col-title">Unrealized Gain</h3>
+        
+        <div class="metric">
+          <span class="label">Overall Gain</span>
+          <span class="value gain-value" :class="{ 'positive': unrealizedGain >= 0, 'negative': unrealizedGain < 0 }">
+            <span class="arrow">{{ unrealizedGain >= 0 ? '▲' : '▼' }}</span>
+            {{ formatCurrency(Math.abs(unrealizedGain)) }} 
+            <span class="percent">({{ formatPercent(unrealizedGainPercent) }})</span>
+          </span>
+        </div>
+        
+        <div class="metric mt-4">
+          <span class="label">Today's Gain</span>
+          <span class="value gain-value" :class="{ 'positive': todayGain >= 0, 'negative': todayGain < 0 }">
+            <span class="arrow">{{ todayGain >= 0 ? '▲' : '▼' }}</span>
+            {{ formatCurrency(Math.abs(todayGain)) }} 
+            <span class="percent">({{ formatPercent(todayGainPercent) }})</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="col col-realized">
+        <h3 class="col-title">Realized Gain</h3>
+        
+        <div class="metric">
+          <span class="label">Realized Gain</span>
+          <span class="value gain-value positive">{{ formatCurrency(realizedGain) }}</span> 
+        </div>
+        
+        <div class="realized-split mt-4">
           <div class="metric">
-            <span class="label">Latest Value</span>
-            <span class="value large">{{ formatINR(latestValue) }}</span>
+            <span class="label">Capital Gain</span>
+            <span class="value gain-value positive">{{ formatCurrency(0) }}</span>
           </div>
-          <div class="metric mt-4">
-            <span class="label">Investment Cost</span>
-            <span class="value">{{ formatINR(investmentCost) }}</span>
-          </div>
-        </div>
-  
-        <div class="col col-unrealized">
-          <h4 class="col-title">Unrealized Gain</h4>
-          
-          <div class="metric mt-2">
-            <span class="label">Overall Gain</span>
-            <span class="value gain-value" :class="{ 'positive': overallUnrealizedGain >= 0, 'negative': overallUnrealizedGain < 0 }">
-              <span class="arrow" v-if="overallUnrealizedGain >= 0">▲</span>
-              <span class="arrow" v-else>▼</span>
-              {{ formatNumber(Math.abs(overallUnrealizedGain)) }} 
-              <span class="percent">({{ overallUnrealizedGainPercent.toFixed(2) }}%)</span>
-            </span>
-          </div>
-          
-          <div class="metric mt-4">
-            <span class="label">Today's Gain</span>
-            <span class="value gain-value negative">
-              <span class="arrow">▼</span> -5,985 <span class="percent">(-0.68%)</span>
-            </span>
-          </div>
-        </div>
-  
-        <div class="col col-realized">
-          <h4 class="col-title">Realized Gain</h4>
-          
-          <div class="metric mt-2">
-            <span class="label">Realized Gain</span>
-            <span class="value gain-value positive">1,50,543</span>
-          </div>
-          
-          <div class="realized-split mt-4">
-            <div class="metric">
-              <span class="label">Capital Gain</span>
-              <span class="value gain-value positive">1,48,203</span>
-            </div>
-            <div class="metric">
-              <span class="label">Other Gain</span>
-              <span class="value gain-value positive">2,341</span>
-            </div>
+          <div class="metric">
+            <span class="label">Other Gain</span>
+            <span class="value gain-value positive">{{ formatCurrency(0) }}</span>
           </div>
         </div>
       </div>
+      
     </div>
-  </template>
-  
-  <script setup lang="ts">
-  import { storeToRefs } from 'pinia';
-  import { usePortfolioStore } from '../../stores/portfolio';
-  
-  const portfolioStore = usePortfolioStore();
-  // Pulling our reactive calculations straight from Pinia
-  const { latestValue, investmentCost, overallUnrealizedGain, overallUnrealizedGainPercent } = storeToRefs(portfolioStore);
-  
-  const formatINR = (value: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
-  };
-  
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(value);
-  };
-  </script>
+  </div>
+</template>
   
   <style scoped>
 .summary-card {

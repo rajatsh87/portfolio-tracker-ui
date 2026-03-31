@@ -30,9 +30,9 @@ const overviewColumns = computed<TableColumn[]>(() => [
 const overviewData = computed(() => {
   const segmentsMap: Record<string, any> = {
     'equity': { id: 'equity', name: 'Stocks/ETF', investment: 0, latestValue: 0, pnl: 0, allocation: 0, currency: 'INR' },
-    'mutual-funds': { id: 'mutual-funds', name: 'Mutual Funds', investment: 0, latestValue: 0, pnl: 0, allocation: 0, currency: 'INR' },
+    'mutual-fund': { id: 'mutual-fund', name: 'Mutual Funds', investment: 0, latestValue: 0, pnl: 0, allocation: 0, currency: 'INR' }, // Updated to 'mutual-fund'
     'fds': { id: 'fds', name: 'Fixed Income', investment: 0, latestValue: 0, pnl: 0, allocation: 0, currency: 'INR' },
-    'foreign': { id: 'foreign', name: 'Foreign Equity', investment: 0, latestValue: 0, pnl: 0, allocation: 0, currency: 'INR' } // Normalizing to INR for summary
+    'foreign-equity': { id: 'foreign-equity', name: 'Foreign Equity', investment: 0, latestValue: 0, pnl: 0, allocation: 0, currency: 'INR' } // Updated to 'foreign-equity'
   };
 
   let grandTotalValue = 0;

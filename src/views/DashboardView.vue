@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRoute } from 'vue-router';
 import PortfolioChart from '../components/charts/PortfolioChart.vue';
@@ -49,6 +49,9 @@ import AddActionForm from '../components/portfolio/AddActionForm.vue';
 import { usePortfolioStore } from '../stores/portfolio';
 
 const portfolioStore = usePortfolioStore();
+onMounted(() => {
+  portfolioStore.fetchHoldings(); 
+});
 const { holdings, isLoading, error } = storeToRefs(portfolioStore);
 const route = useRoute();
 const isModalOpen = ref(false);
@@ -61,9 +64,15 @@ const assetColumnName = computed(() => {
 
 const filteredHoldings = computed(() => {
   if (route.path === '/') return holdings.value;
+  
+  // Update this map to perfectly match the Java backend Enums!
   const segmentMap: Record<string, string> = {
-    '/equity': 'equity', '/mutual-funds': 'mutual-funds', '/fds': 'fds', '/foreign': 'foreign'
+    '/equity': 'equity', 
+    '/mutual-funds': 'mutual-fund',  // Changed to singular
+    '/fds': 'fds', 
+    '/foreign': 'foreign-equity'     // Changed to match backend
   };
+  
   return holdings.value.filter(asset => asset.segment === segmentMap[route.path]);
 });
 </script>

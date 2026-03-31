@@ -20,15 +20,36 @@
           <label>Action</label>
           <select v-model="formData.actionId" required>
             <option disabled value="">Select...</option>
-            <option v-for="action in availableActions" :key="action.id" :value="action.id">
-              {{ action.name }}
-            </option>
-          </select>
+            <option value="BUY">Buy</option>
+            <option value="SELL">Sell</option>
+            </select>
         </div>
 
         <div class="input-group flex-grow">
-          <label>Stock Name</label>
-          <input v-model="formData.ticker" type="text" placeholder="Search stock or enter ticker..." required />
+          <label>Stock Name / Ticker</label>
+          <div class="autocomplete-wrapper">
+            <input 
+              v-model="formData.ticker" 
+              type="text" 
+              placeholder="Search e.g. BAJFINANCE..." 
+              required 
+              autocomplete="off"
+              @input="handleSearch"
+              @focus="handleSearch"
+              @blur="hideDropdown"
+            />
+            
+            <ul v-if="showDropdown && searchResults.length > 0" class="autocomplete-dropdown">
+              <li 
+                v-for="asset in searchResults" 
+                :key="asset.id" 
+                @mousedown="selectAsset(asset)"
+              >
+                <span class="asset-ticker">{{ asset.ticker }}</span>
+                <span class="asset-name">{{ asset.name }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="input-group">
@@ -46,7 +67,7 @@
 
         <div class="input-group">
           <label>Quantity</label>
-          <input v-model.number="formData.quantity" type="number" placeholder="0" required />
+          <input v-model.number="formData.quantity" type="number" step="0.0001" placeholder="0" required />
         </div>
 
         <div class="input-group">
@@ -94,84 +115,114 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useRoute } from 'vue-router'; // <-- 1. Import useRoute
+import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { usePortfolioStore } from '../../stores/portfolio';
+import { portfolioService, type Asset } from '../../services/portfolioService';
 
 const emit = defineEmits(['close']);
 const portfolioStore = usePortfolioStore();
-const { availableActions } = storeToRefs(portfolioStore);
-const route = useRoute(); // <-- 2. Initialize route
+const route = useRoute();
 
 const segments = [
   { id: 'equity', name: 'Stocks/ETF' },
-  { id: 'mutual-funds', name: 'Mutual Fund' },
+  { id: 'mutual-fund', name: 'Mutual Fund' }, 
   { id: 'fds', name: 'Fixed Income' },
-  { id: 'foreign', name: 'Foreign Equity' }
+  { id: 'foreign-equity', name: 'Foreign Equity' } 
 ];
 
-// 3. Helper to determine the default segment based on the URL
 const getDefaultSegment = () => {
   const segmentMap: Record<string, string> = {
-    '/mutual-funds': 'mutual-funds',
+    '/mutual-funds': 'mutual-fund',  // Maps the URL to the fixed ID
     '/fds': 'fds',
-    '/foreign': 'foreign',
+    '/foreign': 'foreign-equity',    // Maps the URL to the fixed ID
     '/equity': 'equity'
   };
-  // If we are on Overview ('/') or any unmapped route, default to 'equity'
   return segmentMap[route.path] || 'equity'; 
 };
 
-// 4. Initialize formData using our new helper
 const formData = ref({
   segment: getDefaultSegment(), 
   actionId: 'BUY',
-  // Smart currency: default to USD if on the foreign tab, else INR
   currency: route.path === '/foreign' ? 'USD' : 'INR', 
   date: new Date().toISOString().split('T')[0], 
-  // Equity Fields
   ticker: '',
-  price: null,
-  quantity: null,
-  // FD Fields
+  price: null as number | null,
+  quantity: null as number | null,
   bankName: '',
-  principalAmount: null,
-  interestRate: null,
+  principalAmount: null as number | null,
+  interestRate: null as number | null,
   maturityDate: ''
 });
 
 const isSubmitting = ref(false);
 
-onMounted(() => {
-  portfolioStore.fetchActions();
-});
+// --- NEW: Live Search Logic ---
+const searchResults = ref<Asset[]>([]);
+const showDropdown = ref(false);
+let searchTimeout: ReturnType<typeof setTimeout>;
+
+const handleSearch = async () => {
+  const query = formData.value.ticker;
+  
+  // Don't search if less than 2 characters
+  if (!query || query.length < 2) {
+    searchResults.value = [];
+    showDropdown.value = false;
+    return;
+  }
+
+  // Clear the previous timer if the user is still typing
+  clearTimeout(searchTimeout);
+  
+  // Wait 300ms after they stop typing before calling the API
+  searchTimeout = setTimeout(async () => {
+    try {
+      searchResults.value = await portfolioService.searchAssets(query);
+      showDropdown.value = searchResults.value.length > 0;
+    } catch (err) {
+      console.error("Failed to search assets", err);
+    }
+  }, 300);
+};
+
+const selectAsset = (asset: Asset) => {
+  formData.value.ticker = asset.ticker;
+  formData.value.currency = asset.currency; // Auto-set the currency!
+  showDropdown.value = false;
+};
+
+const hideDropdown = () => {
+  // Small delay so the mousedown event on the list item has time to fire
+  setTimeout(() => showDropdown.value = false, 200);
+};
+// ------------------------------
 
 const handleSubmit = async () => {
   isSubmitting.value = true;
   
-  await portfolioStore.submitAction({
-    segment: formData.value.segment,
-    actionId: formData.value.actionId,
-    date: formData.value.date,
-    currency: formData.value.currency,
-    ticker: formData.value.segment !== 'fds' ? formData.value.ticker : undefined,
-    price: formData.value.segment !== 'fds' ? (formData.value.price || 0) : undefined,
-    quantity: formData.value.segment !== 'fds' ? (formData.value.quantity || 0) : undefined,
-    bankName: formData.value.segment === 'fds' ? formData.value.bankName : undefined,
-    principalAmount: formData.value.segment === 'fds' ? (formData.value.principalAmount || 0) : undefined,
-    interestRate: formData.value.segment === 'fds' ? (formData.value.interestRate || 0) : undefined,
-    maturityDate: formData.value.segment === 'fds' ? formData.value.maturityDate : undefined
-  });
+  try {
+    await portfolioStore.submitAction({
+      segment: formData.value.segment,
+      actionId: formData.value.actionId,
+      date: formData.value.date,
+      currency: formData.value.currency,
+      ticker: formData.value.segment !== 'fds' ? formData.value.ticker : undefined,
+      price: formData.value.segment !== 'fds' ? (formData.value.price || 0) : undefined,
+      quantity: formData.value.segment !== 'fds' ? (formData.value.quantity || 0) : undefined,
+      bankName: formData.value.segment === 'fds' ? formData.value.bankName : undefined,
+      principalAmount: formData.value.segment === 'fds' ? (formData.value.principalAmount || 0) : undefined,
+      interestRate: formData.value.segment === 'fds' ? (formData.value.interestRate || 0) : undefined,
+      maturityDate: formData.value.segment === 'fds' ? formData.value.maturityDate : undefined
+    });
 
-  // Reset form
-  formData.value = { 
-    ...formData.value, 
-    ticker: '', price: null, quantity: null,
-    bankName: '', principalAmount: null, interestRate: null, maturityDate: ''
-  };
-  isSubmitting.value = false;
-  emit('close'); 
+    emit('close'); 
+  } catch(error) {
+    // You could add a toast notification here later!
+    console.error("Submission failed", error);
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 </script>
 
@@ -187,7 +238,7 @@ const handleSubmit = async () => {
 /* Tab Styling */
 .segment-tabs { 
   display: flex; 
-  background: var(--nav-hover); /* Slightly offsets from the card background */
+  background: var(--nav-hover);
   padding: 0; 
   border-bottom: 2px solid var(--blue-primary); 
 }
@@ -229,8 +280,8 @@ const handleSubmit = async () => {
   border: 1px solid var(--border-color); 
   border-radius: 4px; 
   font-size: 14px; 
-  background: var(--bg-color); /* Darkens the input box in dark mode */
-  color: var(--text-main);     /* Ensures you can read what you type! */
+  background: var(--bg-color); 
+  color: var(--text-main); 
 }
 .input-group input:focus, 
 .input-group select:focus { 
@@ -238,6 +289,50 @@ const handleSubmit = async () => {
   border-color: var(--blue-primary); 
   box-shadow: 0 0 0 1px var(--blue-primary); 
 }
+
+/* --- NEW: Autocomplete CSS --- */
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;
+}
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000; /* Ensures it floats above other inputs */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.autocomplete-dropdown li {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+.autocomplete-dropdown li:last-child {
+  border-bottom: none;
+}
+.autocomplete-dropdown li:hover {
+  background: var(--nav-hover);
+}
+.asset-ticker {
+  font-weight: 600;
+  color: var(--blue-primary);
+}
+.asset-name {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+/* ------------------------------ */
 
 /* Buttons */
 .actions-row { 
