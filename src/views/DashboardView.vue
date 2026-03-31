@@ -64,9 +64,15 @@ const assetColumnName = computed(() => {
 
 const filteredHoldings = computed(() => {
   if (route.path === '/') return holdings.value;
+  
+  // Update this map to perfectly match the Java backend Enums!
   const segmentMap: Record<string, string> = {
-    '/equity': 'equity', '/mutual-funds': 'mutual-funds', '/fds': 'fds', '/foreign': 'foreign'
+    '/equity': 'equity', 
+    '/mutual-funds': 'mutual-fund',  // Changed to singular
+    '/fds': 'fds', 
+    '/foreign': 'foreign-equity'     // Changed to match backend
   };
+  
   return holdings.value.filter(asset => asset.segment === segmentMap[route.path]);
 });
 </script>
