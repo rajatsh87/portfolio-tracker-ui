@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRoute } from 'vue-router';
 import PortfolioChart from '../components/charts/PortfolioChart.vue';
@@ -49,6 +49,9 @@ import AddActionForm from '../components/portfolio/AddActionForm.vue';
 import { usePortfolioStore } from '../stores/portfolio';
 
 const portfolioStore = usePortfolioStore();
+onMounted(() => {
+  portfolioStore.fetchHoldings(); 
+});
 const { holdings, isLoading, error } = storeToRefs(portfolioStore);
 const route = useRoute();
 const isModalOpen = ref(false);

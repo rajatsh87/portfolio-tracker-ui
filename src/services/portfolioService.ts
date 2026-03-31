@@ -1,86 +1,124 @@
-import apiClient from './apiClient';
+import axios from 'axios';
+
+// Create a configured Axios instance
+const apiClient = axios.create({
+  baseURL: 'http://localhost:8080/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  // timeout: 10000, // Optional: timeout after 10 seconds
+});
+
+apiClient.interceptors.response.use(
+  response => {
+    console.log('✅ API SUCCESS:', response.config.url, response.data);
+    return response;
+  },
+  error => {
+    console.error('❌ API FAILED:', error.config?.url, error.response?.status, error.message);
+    return Promise.reject(error);
+  }
+);
+// -----------------------------------------
+
+// --- TypeScript Interfaces (Matching Spring Boot DTOs) ---
 
 export interface Holding {
   id: number;
+  segment: string;
+  currency: string;
+  
+  // Market Assets
   ticker?: string;
   name?: string;
   avgBuyPrice?: number;
   currentPrice?: number;
   quantity?: number;
-  currency: string;
-  segment: string;
-  daysChangePct?: number; // <-- Add this
+  daysChangePct?: number;
+  
+  // Fixed Deposits
   bankName?: string;
+  accountNumber?: string;
   principalAmount?: number;
   interestRate?: number;
   maturityDate?: string;
-  daysRemaining?: number;
-  maturityAmount?: number;
-  FDNumber?: string
-  }
-
-export interface TransactionAction {
-  id: string;
-  name: string;
 }
 
-export interface TransactionPayload {
-  actionId: string;
-  date: string;
+export interface TransactionRequest {
+  accountId: number;
   segment: string;
+  actionId: string;
   currency: string;
+  date: string;
   
-  // Equity/MF Fields (Make these optional now, since FDs won't use them)
   ticker?: string;
   price?: number;
   quantity?: number;
-
-  // FD Fields
+  
   bankName?: string;
   principalAmount?: number;
   interestRate?: number;
   maturityDate?: string;
-  daysRemaining?: number;
-  maturityAmount?: number;
-  FDNumber?: string
 }
 
+export interface Account {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
+export interface Asset {
+  id: number;
+  ticker: string;
+  name: string;
+  segment: string;
+  currency: string;
+}
+
+export interface TransactionHistory {
+  id: number;
+  assetName: string;
+  ticker: string;
+  actionType: string;
+  transactionDate: string;
+  quantity: number;
+  pricePerUnit: number;
+  totalValue: number;
+}
+
+// --- The API Service Methods ---
+
 export const portfolioService = {
-  // 1. Fetch current portfolio
-  async getHoldings(): Promise<Holding[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          { id: 1, ticker: 'BAJFINANCE.NS', name: 'Bajaj Finance', avgBuyPrice: 6500.00, currentPrice: 7100.50, quantity: 15, currency: 'INR', segment: 'equity', daysChangePct: 1.25 },
-          { id: 2, ticker: 'GRMN', name: 'Garmin Ltd.', avgBuyPrice: 130.25, currentPrice: 142.10, quantity: 10, currency: 'USD', segment: 'foreign', daysChangePct: -0.85 },
-          { id: 3, ticker: 'INF846K01DP8', name: 'Axis Bluechip', avgBuyPrice: 45.20, currentPrice: 52.80, quantity: 1000, currency: 'INR', segment: 'mutual-funds', daysChangePct: 0.45 },
-          // Mock FD data
-          { id: 4, bankName: 'SBI FD', principalAmount: 100000, interestRate: 12.0, maturityDate: '2028-01-01', daysRemaining: 365, maturityAmount: 120000, currency: 'INR', segment: 'fds' , FDNumber: '1234567890'},
-          
-        ]);
-      }, 1000);
-    });
+  
+  // 1. Dashboard API: Fetch current holdings based on ledger math
+  async getHoldings(accountId: number): Promise<Holding[]> {
+    console.log('Fetching holdings for account ID:', accountId);  
+    const response = await apiClient.get<Holding[]>(`/portfolio/${accountId}/holdings`);
+    return response.data;
   },
 
-  // 2. Fetch the dropdown list of available actions
-  async getAvailableActions(): Promise<TransactionAction[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          { id: 'BUY', name: 'Buy' },
-          { id: 'SELL', name: 'Sell' },
-          { id: 'DIVIDEND', name: 'Dividend Received' },
-          { id: 'SPLIT', name: 'Stock Split' }
-        ]);
-      }, 500); 
-    });
+  // 2. Add Transaction API: Submit a Buy/Sell or New FD
+  async addTransaction(payload: TransactionRequest): Promise<void> {
+    await apiClient.post('/transactions', payload);
   },
 
-  // 3. Submit the new action to the backend
-  async submitTransaction(payload: TransactionPayload): Promise<boolean> {
-    return new Promise((resolve) => {
-      console.log("Submitting to backend API:", payload);
-      setTimeout(() => resolve(true), 800); // Simulate network delay
+  // 3. Accounts API: Get portfolios owned by user
+  async getUserAccounts(userId: number): Promise<Account[]> {
+    const response = await apiClient.get<Account[]>(`/accounts/user/${userId}`);
+    return response.data;
+  },
+
+  // 4. Ledger API: Get raw transaction history
+  async getTransactionHistory(accountId: number): Promise<TransactionHistory[]> {
+    const response = await apiClient.get<TransactionHistory[]>(`/transactions/account/${accountId}`);
+    return response.data;
+  },
+
+  // 5. Search API: Find assets for the Add Transaction modal
+  async searchAssets(query: string): Promise<Asset[]> {
+    const response = await apiClient.get<Asset[]>(`/assets/search`, {
+      params: { query }
     });
+    return response.data;
   }
 };
