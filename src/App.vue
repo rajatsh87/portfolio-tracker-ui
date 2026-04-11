@@ -36,7 +36,6 @@ const isDarkMode = ref(false)
 // Check local storage for saved theme on load
 onMounted(() => {
   portfolioStore.fetchHoldings()
-  
   const savedTheme = localStorage.getItem('portfolio-theme')
   if (savedTheme === 'dark') {
     isDarkMode.value = true
