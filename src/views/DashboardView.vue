@@ -6,14 +6,12 @@
     <div v-else>
       <div class="table-header-container">
         <h2>My Holdings</h2>
-        <button class="add-transaction-btn" @click="openAddModal"">
+        <button class="add-transaction-btn" @click="openAddModal">
           + Add Transaction
         </button>
       </div>
       
       <div class="dashboard-content">
-        <!-- <PortfolioChart v-if="route.path !== '/fds'" :holdings="route.path === '/' ? holdings : filteredHoldings" /> -->
-        
         <div class="table-container">
           <OverviewTable v-if="route.path === '/'" :holdings="holdings" />
           
@@ -36,7 +34,7 @@
         </div>
       </div>
 
-      <<div v-if="isModalOpen" class="modal-backdrop" @click.self="isModalOpen = false">
+      <div v-if="isModalOpen" class="modal-backdrop" @click.self="isModalOpen = false">
         <div class="modal-content">
           <AddActionForm 
             :editData="transactionToEdit" 
@@ -59,18 +57,16 @@ import StockTable from '../components/portfolio/StockTable.vue';
 import FdTable from '../components/portfolio/FdTable.vue';
 import AddActionForm from '../components/portfolio/AddActionForm.vue';
 import { usePortfolioStore } from '../stores/portfolio';
-import { portfolioService, type Holding, type Transaction } from '../services/portfolioService'; // Imported Service
+import { portfolioService, type Holding, type Transaction } from '../services/portfolioService';
 
 const portfolioStore = usePortfolioStore();
-onMounted(() => {
-  portfolioStore.fetchHoldings(); 
-});
-const { holdings, isLoading, error } = storeToRefs(portfolioStore);
+const { holdings: holdingsRef, isLoading, error } = storeToRefs(portfolioStore);
 const route = useRoute();
 const isModalOpen = ref(false);
+const transactionToEdit = ref<any>(null);
 
-// We will use this later to pass data into the modal for editing
-const transactionToEdit = ref<any>(null); 
+// Provide default empty array when undefined
+const holdings = computed(() => holdingsRef.value || []);
 
 const assetColumnName = computed(() => {
   if (route.path === '/mutual-funds') return 'Mutual Fund';
@@ -81,19 +77,27 @@ const assetColumnName = computed(() => {
 const filteredHoldings = computed(() => {
   if (route.path === '/') return holdings.value;
   const segmentMap: Record<string, string> = {
-    '/equity': 'equity', '/mutual-funds': 'mutual-fund', '/fds': 'fds', '/foreign': 'foreign-equity'
+    '/equity': 'equity', 
+    '/mutual-funds': 'mutual-fund', 
+    '/fds': 'fds', 
+    '/foreign': 'foreign-equity'
   };
   return holdings.value.filter(asset => asset.segment === segmentMap[route.path]);
+});
+
+onMounted(() => {
+  if (portfolioStore.fetchHoldings) {
+    portfolioStore.fetchHoldings();
+  }
 });
 
 // --- ACTION HANDLERS ---
 
 const openAddModal = () => {
-  transactionToEdit.value = null; // Clear edit state for a fresh form
+  transactionToEdit.value = null;
   isModalOpen.value = true;
 };
 
-// Handle Deletes
 const handleDeleteHolding = async (asset: Holding) => {
   alert("To delete an entire asset, please expand the row and delete its transactions.");
 };
@@ -101,8 +105,9 @@ const handleDeleteHolding = async (asset: Holding) => {
 const handleDeleteTransactions = async (txIds: number[]) => {
   try {
     await portfolioService.deleteTransactions(txIds);
-    await portfolioStore.fetchHoldings(); // Refresh UI!
-    // Note: The expanded row will close upon refresh, which is standard behavior
+    if (portfolioStore.fetchHoldings) {
+      await portfolioStore.fetchHoldings();
+    }
   } catch (err) {
     console.error("Failed to delete", err);
     alert("Could not delete transactions.");
@@ -110,19 +115,17 @@ const handleDeleteTransactions = async (txIds: number[]) => {
 };
 
 const handleDeleteSingleTransaction = async (txId: number) => {
-  if(confirm("Are you sure you want to delete this transaction?")) {
+  if (confirm("Are you sure you want to delete this transaction?")) {
     await handleDeleteTransactions([txId]);
   }
 };
 
-// Handle Edits (Opens the modal - we will wire the modal up next!)
 const handleEditTransaction = (tx: Transaction) => {
   transactionToEdit.value = tx;
   isModalOpen.value = true;
 };
 
 const handleEditHolding = (asset: Holding) => {
-  // For FDs, the holding IS the transaction
   if (asset.segment === 'fds') {
     transactionToEdit.value = asset;
     isModalOpen.value = true;

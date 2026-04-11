@@ -140,7 +140,7 @@
 
     </form>
   </div>
-</template> 
+</template>
 
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue';
@@ -149,7 +149,7 @@ import { usePortfolioStore } from '../../stores/portfolio';
 import { portfolioService, type Asset } from '../../services/portfolioService';
 
 const props = defineProps<{
-  editData?: any; // Receives the transaction we want to edit
+  editData?: any;
 }>();
 
 const emit = defineEmits(['close']);
@@ -174,17 +174,14 @@ const getDefaultSegment = () => {
     '/foreign': 'foreign-equity',
     '/equity': 'equity'
   };
-  return segmentMap[route.path] || 'equity'; 
+  return segmentMap[route.path] || 'equity';
 };
 
-// Check if we are in Edit Mode
-const isEditMode = computed(() => !!props.editData);
-
 const formData = ref({
-  segment: getDefaultSegment(), 
+  segment: getDefaultSegment(),
   actionId: 'BUY',
-  currency: route.path === '/foreign' ? 'USD' : 'INR', 
-  date: new Date().toISOString().split('T')[0], 
+  currency: route.path === '/foreign' ? 'USD' : 'INR',
+  date: new Date().toISOString().split('T')[0],
   ticker: '',
   price: null as number | null,
   quantity: null as number | null,
@@ -195,15 +192,21 @@ const formData = ref({
   maturityDate: ''
 });
 
-// PRE-FILL FORM IF EDITING
+const isEditMode = computed(() => !!props.editData);
+
+// Autocomplete state
+const showDropdown = ref(false);
+const searchResults = ref<Asset[]>([]);
+const isSubmitting = ref(false);
+
+// Pre-fill form if editing
 watchEffect(() => {
   if (props.editData) {
     const data = props.editData;
     const isFd = !!data.bankName;
-    
+
     formData.value = {
-      // FIX: Prioritize incoming data.segment so we don't accidentally save an Equity as a Mutual Fund!
-      segment: data.segment || (isFd ? 'fds' : getDefaultSegment()), 
+      segment: data.segment || (isFd ? 'fds' : getDefaultSegment()),
       actionId: data.actionId || 'BUY',
       currency: data.currency || 'INR',
       date: data.date || data.startDate || new Date().toISOString().split('T')[0],
@@ -219,22 +222,67 @@ watchEffect(() => {
   }
 });
 
-const isSubmitting = ref(false);
+// Search handler
+const handleSearch = async () => {
+  const ticker = formData.value.ticker.trim().toUpperCase();
+  if (ticker.length < 1) {
+    searchResults.value = [];
+    showDropdown.value = false;
+    return;
+  }
 
-// ... KEEP ALL YOUR EXISTING handleCalculation, calculatedFdMaturity, and handleSearch LOGIC HERE ...
+  try {
+    searchResults.value = await portfolioService.searchAssets(ticker);
+    showDropdown.value = searchResults.value.length > 0;
+  } catch (error) {
+    console.error('Search failed:', error);
+    searchResults.value = [];
+  }
+};
 
-// --- Submit Logic ---
+const hideDropdown = () => {
+  showDropdown.value = false;
+};
+
+const selectAsset = (asset: Asset) => {
+  formData.value.ticker = asset.ticker;
+  showDropdown.value = false;
+  searchResults.value = [];
+};
+
+// Calculation handler
+const handleCalculation = (field: 'quantity' | 'price' | 'totalAmount') => {
+  const { quantity, price, totalAmount } = formData.value;
+
+  if (field === 'totalAmount' && quantity && price) {
+    // User edited totalAmount, don't override
+    return;
+  }
+
+  if (quantity !== null && price !== null) {
+    formData.value.totalAmount = Number((quantity * price).toFixed(2));
+  }
+};
+
+// FD Maturity calculation
+const calculatedFdMaturity = computed(() => {
+  const { principalAmount, interestRate } = formData.value;
+  if (!principalAmount || !interestRate || interestRate <= 0) return 0;
+  return Number((principalAmount + (principalAmount * interestRate) / 100).toFixed(2));
+});
+
+// Submit
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
-    if (isEditMode.value) {
+    if (isEditMode.value && props.editData?.id) {
       await portfolioStore.editAction(props.editData.id, formData.value);
     } else {
       await portfolioStore.submitAction(formData.value);
     }
-    emit('close'); 
-  } catch(error) {
-    console.error("Submission failed", error);
+    emit('close');
+  } catch (error) {
+    console.error('Submission failed', error);
   } finally {
     isSubmitting.value = false;
   }
