@@ -17,11 +17,12 @@ const props = defineProps<{ holdings: Holding[] }>();
 
 const fdColumns = computed<TableColumn[]>(() => [
   { key: 'bankName', label: 'Bank / Institution', align: 'left', bold: true, subKey: 'FDNumber'  },
-  { key: 'principalAmount', label: 'Principal Amount', type: 'currency' },
-  { key: 'interestRate', label: 'Interest Rate', type: 'colored-percent' },
   { key: 'maturityDate', label: 'Maturity Date', type: 'date' },
-  { key: 'daysRemaining', label: 'Days Remaining', type: 'days'},
+  { key: 'principalAmount', label: 'Principal Amount', type: 'currency' },
+  { key: 'interestAmount', label: 'Interest Amount', type: 'currency' },
   { key: 'maturityAmount', label: 'Maturity Amount', type: 'currency'},
+  { key: 'interestRate', label: 'Interest Rate', type: 'colored-percent' },
+  { key: 'daysRemaining', label: 'Days Remaining', type: 'days'},
   { key: 'allocation', label: '% of FDs', type: 'percent' }
 ]);
 
@@ -32,7 +33,8 @@ const totalFdValue = computed(() => {
 const tableData = computed(() => {
   return props.holdings.map(fd => ({
     ...fd,
-    allocation: totalFdValue.value > 0 ? ((fd.principalAmount || 0) / totalFdValue.value) * 100 : 0
+    allocation: totalFdValue.value > 0 ? ((fd.principalAmount || 0) / totalFdValue.value) * 100 : 0,
+    interestAmount: fd.principalAmount && fd.interestRate ? (fd.principalAmount * (fd.interestRate / 100)) : 0,
   }));
 });
 

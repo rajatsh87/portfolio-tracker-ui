@@ -23,26 +23,6 @@ apiClient.interceptors.response.use(
 
 // --- TypeScript Interfaces (Matching Spring Boot DTOs) ---
 
-export interface Holding {
-  id: number;
-  segment: string;
-  currency: string;
-  
-  // Market Assets
-  ticker?: string;
-  name?: string;
-  avgBuyPrice?: number;
-  currentPrice?: number;
-  quantity?: number;
-  daysChangePct?: number;
-  
-  // Fixed Deposits
-  bankName?: string;
-  accountNumber?: string;
-  principalAmount?: number;
-  interestRate?: number;
-  maturityDate?: string;
-}
 
 export interface TransactionRequest {
   accountId: number;
@@ -86,14 +66,53 @@ export interface TransactionHistory {
   totalValue: number;
 }
 
+export interface Transaction {
+  id: number;
+  actionId: string;
+  date: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Holding {
+  id: number;
+  segment: string;
+  currency: string;
+  
+  // Market Assets
+  ticker?: string;
+  name?: string;
+  avgBuyPrice?: number;
+  currentPrice?: number;
+  quantity?: number;
+  daysChangePct?: number;
+  
+  // Fixed Deposits
+  bankName?: string;
+  accountNumber?: string;
+  principalAmount?: number;
+  interestRate?: number;
+  startDate?: string;
+  maturityDate?: string;
+  maturityAmount?: number;
+  totalInterest?: number;
+  daysRemaining?: number;
+
+  // Tax Fields
+  realizedGain?: number;
+  capitalGain?: number;
+  otherGain?: number;
+}
+
 // --- The API Service Methods ---
 
 export const portfolioService = {
   
   // 1. Dashboard API: Fetch current holdings based on ledger math
-  async getHoldings(accountId: number): Promise<Holding[]> {
-    console.log('Fetching holdings for account ID:', accountId);  
-    const response = await apiClient.get<Holding[]>(`/portfolio/${accountId}/holdings`);
+  getTransactionsByTicker: async (accountId: number, ticker: string): Promise<Transaction[]> => {
+    const response = await apiClient.get('/transactions', {
+      params: { accountId, ticker }
+    });
     return response.data;
   },
 
@@ -120,5 +139,20 @@ export const portfolioService = {
       params: { query }
     });
     return response.data;
+  },
+  async getHoldings(accountId: number): Promise<Holding[]> {
+    const response = await apiClient.get<Holding[]>(`/portfolio/${accountId}/holdings`);
+    return response.data;
+  },
+  async deleteTransaction(transactionId: number): Promise<void> {
+    await apiClient.delete(`/transactions/${transactionId}`);
+  },
+
+  async deleteTransactions(transactionIds: number[]): Promise<void> {
+    // Axios doesn't natively support bulk delete in a simple way, so we run them concurrently
+    await Promise.all(transactionIds.map(id => apiClient.delete(`/transactions/${id}`)));
+  },
+  async updateTransaction(id: number, payload: TransactionRequest): Promise<void> {
+    await apiClient.put(`/transactions/${id}`, payload);
   }
 };
