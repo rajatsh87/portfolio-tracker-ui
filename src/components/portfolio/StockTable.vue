@@ -107,8 +107,13 @@ const handleBulkAction = (action: 'delete' | 'transfer') => {
   }
 };
 
-const editIndividualTx = (tx: Transaction) => {
-  emit('edit-transaction', tx);
+const editIndividualTx = (tx: Transaction, asset: Holding) => {
+  emit('edit-transaction', { 
+    ...tx, 
+    ticker: asset.ticker, 
+    segment: asset.segment, 
+    currency: asset.currency 
+  });
 };
 </script>
 
@@ -209,7 +214,7 @@ const editIndividualTx = (tx: Transaction) => {
                   <td class="right-align">{{ formatCurrency(tx.price) }}</td>
                   <td class="right-align fw-bold">{{ formatCurrency(tx.price * tx.quantity) }}</td>
                   <td class="center-align">
-                    <button class="icon-btn edit-btn" @click="editIndividualTx(tx)">✏️</button>
+                    <button class="icon-btn edit-btn" @click="editIndividualTx(tx, asset)">✏️</button>
                   </td>
                 </tr>
               </tbody>

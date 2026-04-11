@@ -199,12 +199,11 @@ const formData = ref({
 watchEffect(() => {
   if (props.editData) {
     const data = props.editData;
-    
-    // Determine if it's an FD or a Market Asset based on the presence of bankName
     const isFd = !!data.bankName;
     
     formData.value = {
-      segment: isFd ? 'fds' : getDefaultSegment(),
+      // FIX: Prioritize incoming data.segment so we don't accidentally save an Equity as a Mutual Fund!
+      segment: data.segment || (isFd ? 'fds' : getDefaultSegment()), 
       actionId: data.actionId || 'BUY',
       currency: data.currency || 'INR',
       date: data.date || data.startDate || new Date().toISOString().split('T')[0],
