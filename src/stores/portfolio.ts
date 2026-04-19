@@ -52,6 +52,31 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     }
   };
 
+  const editAction = async (transactionId: number, formData: any) => {
+    try {
+      const payload: TransactionRequest = {
+        accountId: CURRENT_ACCOUNT_ID,
+        segment: formData.segment,
+        actionId: formData.actionId,
+        currency: formData.currency,
+        date: formData.date,
+        ticker: formData.ticker,
+        price: formData.price,
+        quantity: formData.quantity,
+        bankName: formData.bankName,
+        principalAmount: formData.principalAmount,
+        interestRate: formData.interestRate,
+        maturityDate: formData.maturityDate
+      };
+
+      await portfolioService.updateTransaction(transactionId, payload);
+      await fetchHoldings(); 
+    } catch (err: any) {
+      console.error('Failed to update transaction:', err);
+      throw new Error(err.response?.data?.error || 'Failed to update transaction.');
+    }
+  };
+
   // --- GETTERS (Calculations for Summary Card) ---
   const latestValue = computed(() => {
     return holdings.value.reduce((total, asset) => {
@@ -94,48 +119,18 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     if (yesterdayTotalValue === 0) return 0;
     return (todayGain.value / yesterdayTotalValue) * 100;
   });
-  const editAction = async (transactionId: number, formData: any) => {
-    try {
-      const payload: TransactionRequest = {
-        accountId: CURRENT_ACCOUNT_ID,
-        segment: formData.segment,
-        actionId: formData.actionId,
-        currency: formData.currency,
-        date: formData.date,
-        ticker: formData.ticker,
-        price: formData.price,
-        quantity: formData.quantity,
-        bankName: formData.bankName,
-        principalAmount: formData.principalAmount,
-        interestRate: formData.interestRate,
-        maturityDate: formData.maturityDate
-      };
-
-      await portfolioService.updateTransaction(transactionId, payload);
-      await fetchHoldings(); 
-    } catch (err: any) {
-      console.error('Failed to update transaction:', err);
-      throw new Error(err.response?.data?.error || 'Failed to update transaction.');
-    }
-  };
-
-  // Remember to export it at the bottom of the store!
-  return { 
-    // ... other exports ...
-    submitAction,
-    editAction, // <-- ADD THIS
-    // ...
-  };
 
   // Placeholder for realized gains until we wire up the Phase 2 Tax Report API
   const realizedGain = computed(() => 0); 
 
+  // ONE SINGLE EXPORT BLOCK AT THE VERY BOTTOM
   return { 
     holdings, 
     isLoading, 
     error, 
     fetchHoldings, 
     submitAction,
+    editAction, // <--- Safely exported here now!
     latestValue,
     investmentCost,
     unrealizedGain,
